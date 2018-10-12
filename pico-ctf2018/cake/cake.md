@@ -227,6 +227,7 @@ the course of our fastbin attack, counter\[0] will always be used. Are we out of
 
 Not quite, we just need to get shop+0x8 returned by malloc twice in a row. To do this, we can set the next pointer in our original forged chunk, back to the forged chunk. Then we can do another fastbin attack, get shop+0x8 overwritten setting shop->counter\[0] to NULL, and our next call to malloc will return shop+0x8 again, with shop->counter\[0] as NULL, and we can finish our attack.
 
+What target to overwrite? Let's just do printf. What to overwrite it with? Well we could do system, but we don't have much control over any printf arguments. However, most libc versions have gadgets that directly call execve on "/bin/sh"! There is this great tool [one_gadget](https://github.com/david942j/one_gadget) that can find these gadgets. And we will use that.
 
 Putting it all together:
 ```python
@@ -300,7 +301,7 @@ def break_heap():
     # Libc leak from dereferencing overwritten counter[0]
     libc = leak(p, 0) - p_off
     log.info('libc base is at: ' + hex(libc))
-    # Next step is redoing step 1) except now the forged chunk->fd will point to shop-0x8
+    # Next step is redoing step 1) except now the forged chunk->next will point to shop-0x8
     # Then we will NULL out counter[0]
     # The following address will be shop-0x8 which means counter[0]->name will overwrite counter[0]
     # And we can get an arbitrary write primitive
