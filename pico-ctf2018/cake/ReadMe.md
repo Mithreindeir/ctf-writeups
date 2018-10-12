@@ -153,11 +153,10 @@ The only security check we have to worry about is that our fake chunk has a size
 
 Ok so one way to overwrite the next pointer is by having a double free in your program. The double free exploit is much
 simpler than the fastbin. If we free a chunk twice, then it will be returned by malloc twice, or it will be returned once,
-but still be on the fastbin linked list. The only security check right now to get around this is making sure that the chunk
-we are freeing twice is not the HEAD of its fastbin list. To bypass this, we just have to free a different chunk of the same
+but still be on the fastbin linked list. The only security check right now is glibc checking if the free'd chunk is already HEAD of the freelist. To bypass this, we just have to free a different chunk of the same
 size between the 1st and 2nd free.
 
-Our plan of action is to get the shop global variable returned by malloc. To do this we can forge use shop->profit as the chunks->size which means that we need to set it the same as our other chunks. (0x10 of usable size + 0x10 header + in_use flag set means the size is 0x21). So if we set the profit to 0x21 (33) then double free a chunk, overwite its next ptr with &shop-0x8 then malloc will return &shop+0x8 or at the customers value. We then can control shop->customers and shop->counter\[0].
+Our plan of action is to get the shop global variable returned by malloc. To do this we can forge a chunk, using shop->profit as the chunks->size which means that we need to set it the same as our other chunks. That would be: 0x10 of usable size + 0x10 header + in_use flag set means the size is 0x21. So if we set the profit to 0x21 (33) then double free a chunk, overwite its next ptr with &shop-0x8, malloc will eventually return &shop+0x8 allowing us to write to shop->customers and shop->counter\[0].
 
 I started writing a python exploit to do this (I will show the full source at the end):
 ```python
@@ -180,7 +179,7 @@ Our goal right now is to leak libc, so lets overwrite the shop->counter\[0] with
     # Next alloc returns shop+0x8. Overwrite customers with shop-0x8 and counter[0] with got addr
     F = alloc(p, struct.pack("L", p_plt), 0)
 ```
-We can now inspect the first, cake, and the price variable will be the printf got entry!
+We can now inspect the first cake, and the price variable will be the printf got entry!
 ```
 pÒM is being sold for $139972221822976
 [*] libc base is at: 0x7f4dd28a1000
