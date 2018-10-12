@@ -95,7 +95,8 @@ The final encryption loop comes out to something like:
 
 ```
 
-This is easy enough to reverse, so I wrote a small C program that did the opposite, however it took the data from the dump provided and did the opposite on that:
+Getting the input from this encoding loop is as simple as doing the loop in reverse order with the inverse operations.
+The inverse of xor is xor with swapped operands, the inverse of ror is rol, and rol is ror. I wrote a small C program that did the opposite, and it took the data from the dump provided and did used that to decode the original:
 
 ```C
 #include <stdio.h>
