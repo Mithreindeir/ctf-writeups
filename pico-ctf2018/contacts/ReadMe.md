@@ -6,7 +6,7 @@ fastbin fastbin fastbin
 
 The source was provided for this one, I put it at [contacts](https://github.com/Mithreindeir/ctf-writeups/blob/master/pico-ctf2018/contacts/contacts.c)
 
-Ok so the program is pretty simple. It lets us make a contact, set a contact biography, delete a contact, or display all contacts.
+The program is pretty simple. It lets us make a contact, set a contact biography, delete a contact, or display all contacts.
 The biography function looks promising:
 
 ```C
@@ -47,7 +47,7 @@ void set_bio(struct contact *contact){
 }
 ```
 
-OK this has a double free vulnerability. You can get it free'd then make an early exit by putting an invalid size.
+There is a not so subtle double free vulnerability. You can get bio free'd then make an early exit by putting an invalid size, and it doesn't set the pointer to NULL, so you can free it however many times you want.
 Lets look at the create contact function:
 
 ```C
@@ -73,12 +73,11 @@ void create_contact(char *name){
     contacts[num_contacts++] = contact;
 }
 ```
-This also has a problem. It doesn't initialize the biography variable. Let's exploit this using first fit.
-For those unaware, first fit is a characteristic of the glibc allocator. If you free a chunk, then allocate one of the same size, it will return the same chunk, without clearing it
-(that's why the hint said if only calloc was used, because calloc would clear it.) Note this only works for chunks of fastbin size because they are LIFO (last in first out), other sized chunks will get fit eventually but they are (FIFO), so the chunks are returned in the order they were freed in. Anyhow lets exploit this:
+This also has a problem: It doesn't initialize the biography variable.
+Let's exploit this using first fit. 
+For those unaware, first fit is a characteristic of the glibc allocator. If you free a chunk, then allocate one of the same size, it will return the same chunk without clearing it (that's why the hint said "if only calloc was used", because if calloc was used, it would clear the previous chunks data). Also, note this only works for chunks of fastbin size because they are LIFO (last in first out), other sized chunks will get fit eventually but they are (FIFO), so the chunks are returned in the order they were freed in. Anyhow lets exploit this:
 
-
-we put the address of puts@got into a chunk the same size as the contacts struct (0x10), with the offset of contact-\>bio (0x8)
+we put the address of puts@got into a chunk the same size as the contacts struct (0x10 bytes), with the offset of contact-\>bio (sizeof(char*) or 8 bytes)
 So we make a bio with 8 bytes of padding, then the puts@got
 ```python
     puts = struct.pack("L", 0x602020)
@@ -91,7 +90,7 @@ So we make a bio with 8 bytes of padding, then the puts@got
     libc = leak(p, B) - 0x6f690 # leaks puts@got and subtract offset for base
 ```
 
-Ok we already have a libc leak, without even exploiting anything.
+So now we already have a libc leak, just from first fit.
 ```
 [*] libc base: 0x7fa99d5dd000
 ```
@@ -119,13 +118,10 @@ The only security check we have to worry about is that our fake chunk has a size
 malloc(): memory corruption (fast)
 ```
 
-One way to overwrite the next pointer is by having a double free in your program. The double free exploit is much
-simpler than the fastbin. If we free a chunk twice, then it will be returned by malloc twice, or it will be returned once,
-but still be on the fastbin linked list. The only security check right now is glibc checking if the free'd chunk is already HEAD of the freelist.To bypass this, we just have to free a different chunk of the same
-size between the 1st and 2nd free.
+One way to overwrite the next pointer is by having a double free in your program. If we free a chunk twice, then it will be in the fastbin freelist twice, and then we can get two allocated chunks pointed at the same space, or use it to overwrite the linked list structure. The only security check right now is glibc checking if the free'd chunk is already HEAD of the freelist. To bypass this, we just have to free a different chunk of the same size between the 1st and 2nd free.
 
-ok lets get right to it. There is a function pointer in libc called \_\_malloc\_hook. This function is to debug malloc, and starts off NULL. If we can get the chunk-\>size to be in any fastbin range, we can
-change the biography's size to be in the same fastbin, and do the attack.
+Let's get right to it. There is a function pointer in libc called \_\_malloc\_hook. This function is to debug malloc, and starts off NULL. If we can get our fake chunk-\>size to be in any fastbin range, we can then we can allocate 
+a biography of in the same bin, double free the biography, then overwrite it with the fake chunk.
 
 Let's check the memory around \_\_malloc\_hook:
 ```
@@ -138,9 +134,7 @@ Let's check the memory around \_\_malloc\_hook:
 0x7ff4335b9b50:	0x0000000000000000	0x0000000000000000
 ```
 
-Huh well it looks like it is surrounded by addresses. They are all way above the fastbin size though. Now while malloc might
-align memory addresses, we are under no obligation to. Lets shift this until we can get a chunk that has a fastbin size, and
-includs the address of malloc_hook in the body.
+Huh well it looks like it is surrounded by addresses. They are all way to large to use as a size for a fasbin chunk though. However, while malloc might align memory addresses, we are under no obligation to. Lets shift this until we can get a chunk that has a fastbin size, and includs the address of malloc_hook in the body.
 
 ```
 0x7ff4335b9aed:	0xf4335b8260000000	0x000000000000007f
@@ -149,7 +143,10 @@ includs the address of malloc_hook in the body.
 0x7ff4335b9b1d:	0x0100000000000000	0x0000000000000000
 ```
 
-Well 0x7f is of fastbin size. And the offset to malloc_hook is only 0x23, so we will have more than enough space to overwrite it. Now we just subtract that from the libc base, and have our offset to our forged chunk.
+Well 0x7f is of fastbin size, and the offset to malloc_hook is only 0x23 (or 0x13 from the address malloc returns), so we will have more than enough space to overwrite it. Now we just subtract that from the libc base, and have our offset to our forged chunk.
+```
+0x7FF43397E5FD - 0x7FF4335b9AED = 0x3C4B10
+```
 
 
 Let's leverage our double free to do a fastbin attack on the \_\_malloc_hook
