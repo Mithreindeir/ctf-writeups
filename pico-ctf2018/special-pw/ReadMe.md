@@ -20,19 +20,19 @@ main:
 	push   ebp
 	mov    ebp,esp
 	sub    esp,0x10
-	mov    DWORD PTR [ebp-0xc],0x0 #count = 0
+	mov    DWORD PTR [ebp-0xc],0x0 //count = 0
 	mov    eax,DWORD PTR [ebp+0xc]
 	mov    eax,DWORD PTR [eax+0x4]
-	mov    DWORD PTR [ebp-0x4],eax #str = argv[1]
+	mov    DWORD PTR [ebp-0x4],eax // str = argv[1]
 	jmp    part_b
 part_a:
-	add    DWORD PTR [ebp-0xc],0x1 # count++
-	add    DWORD PTR [ebp-0x4],0x1 # str++
+	add    DWORD PTR [ebp-0xc],0x1 // count++
+	add    DWORD PTR [ebp-0x4],0x1 // str++
 part_b:
 	mov    eax,DWORD PTR [ebp-0x4]
 	movzx  eax,BYTE PTR [eax]
-	test   al,al 			# is *str NULL?
-	jne    part_a 			# no? then continue loop
+	test   al,al 			// is *str NULL?
+	jne    part_a 			// no? then continue loop
 	mov    DWORD PTR [ebp-0x8],0x0
 	jmp    part_d
 
@@ -55,29 +55,29 @@ Make sure to note that although the input is a string, it operates on it in byte
 ```asm
 	mov    eax,DWORD PTR [ebp+0xc]
 	add    eax,0x4
-	mov    edx,DWORD PTR [eax] 	#str = argv[1]
+	mov    edx,DWORD PTR [eax] 	//str = argv[1]
 	mov    eax,DWORD PTR [ebp-0x8]
-	add    eax,edx 			#str = str+idx
+	add    eax,edx 			//str = str+idx
 	mov    DWORD PTR [ebp-0x4],eax
 	mov    eax,DWORD PTR [ebp-0x4]
 	movzx  eax,BYTE PTR [eax]
-	xor    eax,0xde 		#str = *str ^ 0xde
+	xor    eax,0xde 		//*str = *str ^ 0xde
 	mov    edx,eax
 	mov    eax,DWORD PTR [ebp-0x4]
 	mov    BYTE PTR [eax],dl
 	mov    eax,DWORD PTR [ebp-0x4]
 	movzx  eax,WORD PTR [eax]
-	ror    ax,0xd 			# 16 bit ror(str, 0xd) storing in str
+	ror    ax,0xd 			// 16 bit ror(*str, 0xd) storing in str
 	mov    edx,eax
 	mov    eax,DWORD PTR [ebp-0x4]
 	mov    WORD PTR [eax],dx
 	mov    eax,DWORD PTR [ebp-0x4]
 	mov    eax,DWORD PTR [eax]
-	rol    eax,0xf 			# 32 bit rol(str, 0xd) storing in str
+	rol    eax,0xf 			// 32 bit rol(*str, 0xd) storing in str
 	mov    edx,eax
 	mov    eax,DWORD PTR [ebp-0x4]
 	mov    DWORD PTR [eax],edx
-	add    DWORD PTR [ebp-0x8],0x1 #idx++
+	add    DWORD PTR [ebp-0x8],0x1 // idx++
 ```
 
 This happens in a loop that exits when the idx is greater than 4 less than the length (because it operates on it in double words during the rol)
@@ -95,7 +95,8 @@ The final encryption loop comes out to something like:
 
 ```
 
-This is easy enough to reverse, so I wrote a small C program that did the opposite, however it took the data from the dump provided and did the opposite on that:
+Getting the input from this encoding loop is as simple as doing the loop in reverse order with the inverse operations.
+The inverse of xor is xor with swapped operands, the inverse of ror is rol, and rol is ror. I wrote a small C program that did the opposite, and it took the data from the dump provided and did used that to decode the original:
 
 ```C
 #include <stdio.h>
