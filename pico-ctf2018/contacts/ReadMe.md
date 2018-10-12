@@ -4,7 +4,7 @@ This program for storing your contacts is currently in beta. Can you hijack cont
 If only the author used calloc() instead...
 fastbin fastbin fastbin
 
-The source was provided for this one, I put it at [contacts](https://github.com/Mithreindeir/ctf-writeups/pico-ctf2018/contacts/contacts.c)
+The source was provided for this one, I put it at [contacts](https://github.com/Mithreindeir/ctf-writeups/blob/master/pico-ctf2018/contacts/contacts.c)
 
 Ok so the program is pretty simple. It lets us make a contact, set a contact biography, delete a contact, or display all contacts.
 The biography function looks promising:
