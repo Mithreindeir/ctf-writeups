@@ -138,9 +138,9 @@ Let's check the memory around \_\_malloc\_hook:
 0x7ff4335b9b50:	0x0000000000000000	0x0000000000000000
 ```
 
-Huh well it looks like its surrounded by addresses. They are all way above the fastbin size though. Well malloc might
-align memory addresses, but we don't have to. Lets shift this until we can get a chunk that has a fastbin size, and
-included the address of malloc_hook in the body.
+Huh well it looks like it is surrounded by addresses. They are all way above the fastbin size though. Now while malloc might
+align memory addresses, we are under no obligation to. Lets shift this until we can get a chunk that has a fastbin size, and
+includs the address of malloc_hook in the body.
 
 ```
 0x7ff4335b9aed:	0xf4335b8260000000	0x000000000000007f
@@ -149,7 +149,8 @@ included the address of malloc_hook in the body.
 0x7ff4335b9b1d:	0x0100000000000000	0x0000000000000000
 ```
 
-Well 0x7f is of fastbin size. And the offset to malloc_hook is only 0x23, so we will have more than enough space to overwrite it. 
+Well 0x7f is of fastbin size. And the offset to malloc_hook is only 0x23, so we will have more than enough space to overwrite it. Now we just subtract that from the libc base, and have our offset to our forged chunk.
+
 
 Let's leverage our double free to do a fastbin attack on the \_\_malloc_hook
 ```python
@@ -197,7 +198,7 @@ Stopped reason: SIGSEGV
 0x7fc63c8932a3 <malloc+371>:	jmp    rax
 RAX: 0x4141414141414141 ('AAAAAAAA')
 ```
-Now that we know it works, lets try to pop a shell. We could do system, but we don't control malloc_hook argument. However, most libc versions have gadgets that directly call execve on "/bin/sh"! There is this great tool [one_gadget](https://github.com/david942j/one_gadget) that can find these gadgets. And we will use that.
+Now that we know it works, lets try to pop a shell. We could do system, but we don't control any arguments to malloc_hook. However, most libc versions have gadgets that directly call execve on "/bin/sh"! There is this great tool [one_gadget](https://github.com/david942j/one_gadget) that can find these gadgets. And we will use that.
 It found several gadgets, I just picked one.
 
 Lets tie it all together:
